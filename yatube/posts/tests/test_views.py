@@ -210,15 +210,18 @@ class PostsViewsTests(TestCase):
         self.assertEqual(context_post_detail.group, post.group)
 
     def test_posts_auth_user_subscribe_check(self):
-        """Авторизованный пользователь может подписываться на других пользователей и отписываться"""
+        """Авторизованный пользователь
+        может подписываться на других пользователей и отписываться"""
         user_to_subscribe = User.objects.filter(username='auth_subscribe')
-        response = self.authorized_client.get(reverse(PostsViewsTests.post_add_follow_endpoint,
-                                                      kwargs={'username': user_to_subscribe}))
+        response = self.authorized_client.get(
+            reverse(PostsViewsTests.post_add_follow_endpoint,
+                    kwargs={'username': user_to_subscribe}))
         Follow.objects.filter(author=user_to_subscribe)
 
 
 class PaginatorViewsTest(TestCase):
-    """ Для возможности проверки пагинатора была сделана выгрузка БД
+    """ Для возможности проверки
+    пагинатора была сделана выгрузка БД
     в файл json.
      Модель User, где автор leo.
      Модель Post, где есть 37 постов автора leo
@@ -248,7 +251,8 @@ class PaginatorViewsTest(TestCase):
         self.guest_client = Client()
 
     def test_posts_profile_page_show_correct_context(self):
-        """Шаблон profile сформирован с правильным контекстом."""
+        """Шаблон profile сформирован
+        с правильным контекстом."""
         user_leo = User.objects.get(username='leo')
 
         response = self.guest_client.get(
