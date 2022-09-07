@@ -214,7 +214,7 @@ class PostsViewsTests(TestCase):
         user_to_subscribe = User.objects.filter(username='auth_subscribe')
         response = self.authorized_client.get(reverse(PostsViewsTests.post_add_follow_endpoint,
                                                       kwargs={'username': user_to_subscribe}))
-        Follow.objects.filter( author=user_to_subscribe)
+        Follow.objects.filter(author=user_to_subscribe)
 
 
 class PaginatorViewsTest(TestCase):
