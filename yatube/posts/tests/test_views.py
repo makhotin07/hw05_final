@@ -18,7 +18,8 @@ class PostsViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.user_to_subscribe = User.objects.create_user(username='auth_subscribe')
+        cls.user_to_subscribe = User.objects.create_user(
+            username='auth_subscribe')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='group-test-slug',
@@ -213,9 +214,9 @@ class PostsViewsTests(TestCase):
         """Авторизованный пользователь
         может подписываться на других пользователей и отписываться"""
         user_to_subscribe = User.objects.filter(username='auth_subscribe')
-        response = self.authorized_client.get(
-            reverse(PostsViewsTests.post_add_follow_endpoint,
-                    kwargs={'username': user_to_subscribe}))
+        # response = self.authorized_client.get(
+        #     reverse(PostsViewsTests.post_add_follow_endpoint,
+        #             kwargs={'username': user_to_subscribe}))
         Follow.objects.filter(author=user_to_subscribe)
 
 
