@@ -151,8 +151,9 @@ class PostsCreateImageFormTests(TestCase):
             follow=True
         )
 
-        self.assertRedirects(response, reverse(PostsCreateImageFormTests.post_profile_endpoint,
-                                               kwargs={'username': PostsCreateImageFormTests.user}))
+        self.assertRedirects(response, reverse(
+            PostsCreateImageFormTests.post_profile_endpoint,
+            kwargs={'username': PostsCreateImageFormTests.user}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
