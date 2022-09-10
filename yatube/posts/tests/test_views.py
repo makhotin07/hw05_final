@@ -18,7 +18,8 @@ class PostsViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
-        cls.user_not_subscribed = User.objects.create_user(username='auth_not_subscribed')
+        cls.user_not_subscribed = User.objects.create_user(
+            username='auth_not_subscribed')
         cls.user_to_subscribe = User.objects.create_user(
             username='auth_to_subscribe')
         cls.group = Group.objects.create(
@@ -50,7 +51,8 @@ class PostsViewsTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsViewsTests.user)
         self.authorized_client_not_subscriber = Client()
-        self.authorized_client_not_subscriber.force_login(PostsViewsTests.user_not_subscribed)
+        self.authorized_client_not_subscriber.force_login(
+            PostsViewsTests.user_not_subscribed)
 
     def test_posts_urls_uses_correct_template(self):
         """Имена страниц используют соответствующий шаблон."""
@@ -218,13 +220,15 @@ class PostsViewsTests(TestCase):
     def test_posts_auth_user_subscribe_check(self):
         """Авторизованный пользователь может подписываться на других пользователей
         и отписываться и видит записи у себя на странице follow_index
-        Неавторизованный пользователь не видит записей пользователей на которых не подписан"""
+        Неавторизованный пользователь
+        не видит записей пользователей на которых не подписан"""
         user_follower_client = self.authorized_client
         follower_count = Follow.objects.count()
         user_follower = User.objects.get(username='auth')
         user_to_subscribe = User.objects.get(username='auth_to_subscribe')
         user_not_subscribe = User.objects.get(username='auth_not_subscribed')
-        Post.objects.create(author=user_to_subscribe, text='Пост для проверки подписки')
+        Post.objects.create(
+            author=user_to_subscribe, text='Пост для проверки подписки')
 
         response_subscribe = user_follower_client.get(
             reverse(PostsViewsTests.post_add_follow_endpoint,
@@ -245,11 +249,11 @@ class PostsViewsTests(TestCase):
 
         self.assertIn(posts_user_to_subscribe, context_posts)
 
-        follow_page_response_not_subscriber = self.authorized_client_not_subscriber.get(
+        follow_page_response = self.authorized_client_not_subscriber.get(
             reverse(PostsViewsTests.post_follow_index_endpoint))
         posts_user_to_subscribe = Post.objects.filter(
             author__following__user=user_not_subscribe).first()
-        context_posts = follow_page_response_not_subscriber.context['page_obj'].object_list
+        context_posts = follow_page_response.context['page_obj'].object_list
 
         self.assertNotIn(posts_user_to_subscribe, context_posts)
 
