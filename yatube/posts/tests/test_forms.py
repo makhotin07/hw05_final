@@ -244,7 +244,8 @@ class PostsImageFormTests(TestCase):
 
         self.assertTrue(
             Post.objects.get(
-                pk=post_with_image.id).text == 'Тестовый пост Изменен'
+                pk=post_with_image.id).text == 'Тестовый пост Изменен для '
+                                               'оценки работы с картинкой'
         )
 
         self.assertTrue(
