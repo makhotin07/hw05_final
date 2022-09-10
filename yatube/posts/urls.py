@@ -21,8 +21,3 @@ urlpatterns = [
     path('profile/<str:username>/unfollow/',
          views.profile_unfollow, name='profile_unfollow'),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
-    )

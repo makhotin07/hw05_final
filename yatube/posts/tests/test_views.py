@@ -18,8 +18,9 @@ class PostsViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.user_not_subscribed = User.objects.create_user(username='auth_not_subscribed')
         cls.user_to_subscribe = User.objects.create_user(
-            username='auth_subscribe')
+            username='auth_to_subscribe')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='group-test-slug',
@@ -41,11 +42,15 @@ class PostsViewsTests(TestCase):
         cls.post_detail_endpoint = 'posts:post_detail'
         cls.post_create_endpoint = 'posts:post_create'
         cls.post_add_follow_endpoint = 'posts:profile_follow'
+        cls.post_delete_follow_endpoint = 'posts:profile_unfollow'
+        cls.post_follow_index_endpoint = 'posts:follow_index'
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsViewsTests.user)
+        self.authorized_client_not_subscriber = Client()
+        self.authorized_client_not_subscriber.force_login(PostsViewsTests.user_not_subscribed)
 
     def test_posts_urls_uses_correct_template(self):
         """Имена страниц используют соответствующий шаблон."""
@@ -211,13 +216,47 @@ class PostsViewsTests(TestCase):
         self.assertEqual(context_post_detail.group, post.group)
 
     def test_posts_auth_user_subscribe_check(self):
-        """Авторизованный пользователь
-        может подписываться на других пользователей и отписываться"""
-        user_to_subscribe = User.objects.filter(username='auth_subscribe')
-        # response = self.authorized_client.get(
-        #     reverse(PostsViewsTests.post_add_follow_endpoint,
-        #             kwargs={'username': user_to_subscribe}))
-        Follow.objects.filter(author=user_to_subscribe)
+        """Авторизованный пользователь может подписываться на других пользователей и отписываться и видит записи у себя на странице follow_index
+        Неавторизованный пользователь не видит записей пользователей на которых не подписан"""
+        user_follower_client = self.authorized_client
+        follower_count = Follow.objects.count()
+        user_follower = User.objects.get(username='auth')
+        user_to_subscribe = User.objects.get(username='auth_to_subscribe')
+        user_not_subscribe = User.objects.get(username='auth_not_subscribed')
+        Post.objects.create(author=user_to_subscribe, text='Пост для проверки подписки')
+
+        response_subscribe = user_follower_client.get(
+            reverse(PostsViewsTests.post_add_follow_endpoint,
+                    kwargs={'username': user_to_subscribe.username}))
+
+        self.assertEqual(Follow.objects.count(), follower_count + 1)
+        self.assertRedirects(response_subscribe, reverse(PostsViewsTests.post_follow_index_endpoint))
+        self.assertTrue(Follow.objects.filter(user=user_follower, author=user_to_subscribe).exists())
+
+
+        follow_page_response = user_follower_client.get(
+            reverse(PostsViewsTests.post_follow_index_endpoint))
+        posts_user_to_subscribe = Post.objects.filter(author__following__user=user_follower).first()
+        context_posts = follow_page_response.context['page_obj'].object_list
+
+        self.assertIn(posts_user_to_subscribe, context_posts)
+
+
+        follow_page_response_not_subscriber = self.authorized_client_not_subscriber.get(
+            reverse(PostsViewsTests.post_follow_index_endpoint))
+        posts_user_to_subscribe = Post.objects.filter(author__following__user=user_not_subscribe).first()
+        context_posts = follow_page_response_not_subscriber.context['page_obj'].object_list
+
+        self.assertNotIn(posts_user_to_subscribe, context_posts)
+
+
+        response_unfollow = user_follower_client.get(
+            reverse(PostsViewsTests.post_delete_follow_endpoint,
+                    kwargs={'username': user_to_subscribe.username}))
+
+        self.assertEqual(Follow.objects.count(), follower_count)
+        self.assertRedirects(response_unfollow, reverse(PostsViewsTests.post_follow_index_endpoint))
+        self.assertFalse(Follow.objects.filter(user=user_follower, author=user_to_subscribe).exists())
 
 
 class PaginatorViewsTest(TestCase):
@@ -231,7 +270,7 @@ class PaginatorViewsTest(TestCase):
          second_group - 4 поста,
          third_group - 16 постов.
      """
-    fixtures = ['db.json']
+    fixtures = ('db.json',)
 
     @classmethod
     def setUpClass(cls):
@@ -343,7 +382,7 @@ class PaginatorViewsTest(TestCase):
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
-class PostsImageTests(TestCase):
+class PostsViewsImageTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -378,20 +417,20 @@ class PostsImageTests(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostsImageTests.user)
+        self.authorized_client.force_login(PostsViewsImageTests.user)
 
     def test_posts_post_img_check_presence_context_index_page(self):
         """Проверяет наличие поста с картинкой на странице Index."""
         post = Post.objects.first()
 
         response = self.authorized_client.get(
-            reverse(PostsImageTests.post_index_endpoint))
+            reverse(PostsViewsImageTests.post_index_endpoint))
         post_with_image = response.context['page_obj'][0].image.url
 
         self.assertEqual(post.image.url, post_with_image)
@@ -402,7 +441,7 @@ class PostsImageTests(TestCase):
         post = Post.objects.filter(author=author).first()
 
         response = self.authorized_client.get(
-            reverse(PostsImageTests.post_profile_endpoint,
+            reverse(PostsViewsImageTests.post_profile_endpoint,
                     kwargs={'username': author.username}))
         post_with_image = response.context['page_obj'][0].image.url
 
@@ -415,7 +454,7 @@ class PostsImageTests(TestCase):
 
         response = self.authorized_client.get(
             reverse(
-                PostsImageTests.post_group_list_endpoint,
+                PostsViewsImageTests.post_group_list_endpoint,
                 kwargs={'slug': group.slug}))
         post_with_image = response.context['page_obj'][0].image.url
 
@@ -426,7 +465,7 @@ class PostsImageTests(TestCase):
         post = Post.objects.get(group__title='Тестовая группа c картинкой')
 
         response = self.authorized_client.get(
-            reverse(PostsImageTests.post_detail_endpoint,
+            reverse(PostsViewsImageTests.post_detail_endpoint,
                     kwargs={'post_id': post.id}))
         context_post_detail = response.context['post_detail']
 

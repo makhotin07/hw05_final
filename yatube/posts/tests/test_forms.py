@@ -1,12 +1,12 @@
 import shutil
 import tempfile
-
+from django.core.cache import cache
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from posts.models import Group, Post
+from posts.models import Group, Post, Comment
 
 User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -97,9 +97,43 @@ class PostsFormsTests(TestCase):
         )
         self.assertEqual(Post.objects.count(), posts_count)
 
+    def test_posts_post_create_comment_detail_page(self):
+        """Авторизованный пользователь может успешно создать комментарий, который далее отображается на странице связанного с ним поста"""
+        post = Post.objects.get(pk=1)
+        comment_count = Comment.objects.count()
+        form_data = {
+            'text': 'Тестовый комментарий',
+        }
+
+        response = self.authorized_client.post(
+            reverse(PostsFormsTests.post_add_comment_endpoint,
+                    kwargs={'post_id': post.id}),
+            data=form_data,
+            follow=True
+        )
+
+        self.assertRedirects(
+            response, reverse(
+                PostsFormsTests.post_detail_endpoint,
+                kwargs={'post_id': post.id}))
+
+        self.assertTrue(
+            Comment.objects.get(
+                pk=post.id).text == 'Тестовый комментарий'
+        )
+
+        self.assertTrue(
+            Comment.objects.filter(
+                author=PostsFormsTests.user,
+                text='Тестовый комментарий',
+                post=PostsFormsTests.post
+            ).exists()
+        )
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
-class PostsCreateImageFormTests(TestCase):
+class PostsImageFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -119,16 +153,30 @@ class PostsCreateImageFormTests(TestCase):
         )
         cls.post_profile_endpoint = 'posts:profile'
         cls.post_create_endpoint = 'posts:post_create'
+        cls.post_edit_endpoint = 'posts:post_edit'
+        cls.post_detail_endpoint = 'posts:post_detail'
+        cls.post_index_endpoint = 'posts:index'
+
+        cls.post_with_image = Post.objects.create(
+            text='Тестовый пост с картинкой setUpClass',
+            image=SimpleUploadedFile(
+                name='setUpClass_name.gif',
+                content=PostsImageFormTests.small_gif,
+                content_type='image/gif'
+            ),
+            group=PostsImageFormTests.group,
+            author=PostsImageFormTests.user
+        )
 
     @classmethod
     def tearDownClass(cls):
-        super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostsCreateImageFormTests.user)
+        self.authorized_client.force_login(PostsImageFormTests.user)
 
     def test_posts_create_post_with_image(self):
         """Тестируется форма создание поста с добавлением изображения."""
@@ -136,7 +184,7 @@ class PostsCreateImageFormTests(TestCase):
         group = Group.objects.get(title='Тестовая группа c картинкой')
         uploaded = SimpleUploadedFile(
             name='small.gif',
-            content=PostsCreateImageFormTests.small_gif,
+            content=PostsImageFormTests.small_gif,
             content_type='image/gif'
         )
         form_data = {
@@ -146,14 +194,14 @@ class PostsCreateImageFormTests(TestCase):
         }
 
         response = self.authorized_client.post(
-            reverse(PostsCreateImageFormTests.post_create_endpoint),
+            reverse(PostsImageFormTests.post_create_endpoint),
             data=form_data,
             follow=True
         )
 
         self.assertRedirects(response, reverse(
-            PostsCreateImageFormTests.post_profile_endpoint,
-            kwargs={'username': PostsCreateImageFormTests.user}))
+            PostsImageFormTests.post_profile_endpoint,
+            kwargs={'username': PostsImageFormTests.user}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
@@ -161,3 +209,47 @@ class PostsCreateImageFormTests(TestCase):
                 group=group,
                 image='posts/small.gif'
             ).exists())
+
+    def test_posts_edit_post_with_image(self):
+        """Валидная форма изменяет запись модели Post с картинкой"""
+
+        post_with_image = Post.objects.get(pk=1)
+        posts_count = Post.objects.count()
+
+        group = Group.objects.get(title='Тестовая группа c картинкой')
+        user = User.objects.get(username='auth')
+        uploaded_new = SimpleUploadedFile(
+            name='small_new.gif',
+            content=PostsImageFormTests.small_gif,
+            content_type='image/gif'
+        )
+
+        form_data = {
+            'text': 'Тестовый пост Изменен для оценки работы с картинкой',
+            'group': group.id,
+            'image': uploaded_new
+        }
+
+        response = self.authorized_client.post(
+            reverse(PostsImageFormTests.post_edit_endpoint, kwargs={'post_id': post_with_image.id}),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response, reverse(
+                PostsImageFormTests.post_detail_endpoint,
+                kwargs={'post_id': post_with_image.id}))
+
+        self.assertTrue(
+            Post.objects.get(
+                pk=post_with_image.id).text == 'Тестовый пост Изменен для оценки работы с картинкой'
+        )
+
+        self.assertTrue(
+            Post.objects.filter(
+                author=user,
+                text='Тестовый пост Изменен для оценки работы с картинкой',
+                group=group
+            ).exists()
+        )
+        self.assertEqual(Post.objects.count(), posts_count)
