@@ -49,13 +49,11 @@ class Post(models.Model):
 
     class Meta:
         ordering = ('-pub_date',)
+        verbose_name = 'Пост'
+        verbose_name_plural = 'Посты'
 
     def __str__(self):
         return self.text[:15]
-
-    class Meta:
-        verbose_name = 'Пост'
-        verbose_name_plural = 'Посты'
 
 
 class Comment(CreatedModel):
@@ -94,5 +92,5 @@ class Follow(models.Model):
         verbose_name = 'Подписчик'
         verbose_name_plural = 'Подписки'
         constraints = [
-            UniqueConstraint(fields = ['user', 'author'], name = 'unique_subscription'),
+            UniqueConstraint(fields=['user', 'author'], name='unique_subscription'),
         ]

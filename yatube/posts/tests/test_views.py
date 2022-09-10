@@ -216,7 +216,8 @@ class PostsViewsTests(TestCase):
         self.assertEqual(context_post_detail.group, post.group)
 
     def test_posts_auth_user_subscribe_check(self):
-        """Авторизованный пользователь может подписываться на других пользователей и отписываться и видит записи у себя на странице follow_index
+        """Авторизованный пользователь может подписываться на других пользователей
+        и отписываться и видит записи у себя на странице follow_index
         Неавторизованный пользователь не видит записей пользователей на которых не подписан"""
         user_follower_client = self.authorized_client
         follower_count = Follow.objects.count()
@@ -230,33 +231,40 @@ class PostsViewsTests(TestCase):
                     kwargs={'username': user_to_subscribe.username}))
 
         self.assertEqual(Follow.objects.count(), follower_count + 1)
-        self.assertRedirects(response_subscribe, reverse(PostsViewsTests.post_follow_index_endpoint))
-        self.assertTrue(Follow.objects.filter(user=user_follower, author=user_to_subscribe).exists())
-
+        self.assertRedirects(response_subscribe, reverse(
+            PostsViewsTests.post_follow_index_endpoint))
+        self.assertTrue(Follow.objects.filter(
+            user=user_follower, author=user_to_subscribe).exists())
 
         follow_page_response = user_follower_client.get(
-            reverse(PostsViewsTests.post_follow_index_endpoint))
-        posts_user_to_subscribe = Post.objects.filter(author__following__user=user_follower).first()
+            reverse(
+                PostsViewsTests.post_follow_index_endpoint))
+        posts_user_to_subscribe = Post.objects.filter(
+            author__following__user=user_follower).first()
         context_posts = follow_page_response.context['page_obj'].object_list
 
         self.assertIn(posts_user_to_subscribe, context_posts)
 
-
         follow_page_response_not_subscriber = self.authorized_client_not_subscriber.get(
             reverse(PostsViewsTests.post_follow_index_endpoint))
-        posts_user_to_subscribe = Post.objects.filter(author__following__user=user_not_subscribe).first()
+        posts_user_to_subscribe = Post.objects.filter(
+            author__following__user=user_not_subscribe).first()
         context_posts = follow_page_response_not_subscriber.context['page_obj'].object_list
 
         self.assertNotIn(posts_user_to_subscribe, context_posts)
-
 
         response_unfollow = user_follower_client.get(
             reverse(PostsViewsTests.post_delete_follow_endpoint,
                     kwargs={'username': user_to_subscribe.username}))
 
-        self.assertEqual(Follow.objects.count(), follower_count)
-        self.assertRedirects(response_unfollow, reverse(PostsViewsTests.post_follow_index_endpoint))
-        self.assertFalse(Follow.objects.filter(user=user_follower, author=user_to_subscribe).exists())
+        self.assertEqual(
+            Follow.objects.count(), follower_count)
+        self.assertRedirects(
+            response_unfollow, reverse(
+                PostsViewsTests.post_follow_index_endpoint))
+        self.assertFalse(
+            Follow.objects.filter(
+                user=user_follower, author=user_to_subscribe).exists())
 
 
 class PaginatorViewsTest(TestCase):

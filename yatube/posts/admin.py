@@ -35,4 +35,3 @@ class CommentAdmin(admin.ModelAdmin):
 @admin.register(Follow)
 class FollowAdmin(admin.ModelAdmin):
     list_display = ('pk', 'user', 'author',)
-

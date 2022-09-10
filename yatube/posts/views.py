@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import PostForm, CommentForm
-from .models import Group, Post, User, Comment, Follow
+from .models import Group, Post, User, Follow
 from .utils import paginate_posts
 
 POSTS_PER_PAGE = 10
@@ -36,7 +36,8 @@ def profile(request, username):
     count_post = post_list.count()
     page_obj = paginate_posts(request, post_list, POSTS_PER_PAGE)
     if request.user.is_authenticated:
-        following = Follow.objects.filter(user=request.user, author=author).exists()
+        following = Follow.objects.filter(
+            user=request.user, author=author).exists()
     else:
         following = None
 

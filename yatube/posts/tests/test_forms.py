@@ -98,7 +98,8 @@ class PostsFormsTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count)
 
     def test_posts_post_create_comment_detail_page(self):
-        """Авторизованный пользователь может успешно создать комментарий, который далее отображается на странице связанного с ним поста"""
+        """Авторизованный пользователь может успешно создать комментарий,
+        который далее отображается на странице связанного с ним поста"""
         post = Post.objects.get(pk=1)
         comment_count = Comment.objects.count()
         form_data = {
@@ -231,7 +232,8 @@ class PostsImageFormTests(TestCase):
         }
 
         response = self.authorized_client.post(
-            reverse(PostsImageFormTests.post_edit_endpoint, kwargs={'post_id': post_with_image.id}),
+            reverse(PostsImageFormTests.post_edit_endpoint,
+                    kwargs={'post_id': post_with_image.id}),
             data=form_data,
             follow=True
         )
@@ -242,7 +244,7 @@ class PostsImageFormTests(TestCase):
 
         self.assertTrue(
             Post.objects.get(
-                pk=post_with_image.id).text == 'Тестовый пост Изменен для оценки работы с картинкой'
+                pk=post_with_image.id).text == 'Тестовый пост Изменен'
         )
 
         self.assertTrue(
