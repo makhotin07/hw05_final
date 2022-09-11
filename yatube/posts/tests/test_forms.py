@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+
 from posts.models import Group, Post, Comment
 
 User = get_user_model()
@@ -102,8 +103,9 @@ class PostsFormsTests(TestCase):
         который далее отображается на странице связанного с ним поста"""
         post = Post.objects.get(pk=1)
         comment_count = Comment.objects.count()
+        text_comment = 'Тестовый комментарий'
         form_data = {
-            'text': 'Тестовый комментарий',
+            'text': text_comment,
         }
 
         response = self.authorized_client.post(
@@ -117,20 +119,19 @@ class PostsFormsTests(TestCase):
             response, reverse(
                 PostsFormsTests.post_detail_endpoint,
                 kwargs={'post_id': post.id}))
-
         self.assertTrue(
             Comment.objects.get(
-                pk=post.id).text == 'Тестовый комментарий'
+                pk=post.id).text == text_comment
         )
-
         self.assertTrue(
             Comment.objects.filter(
                 author=PostsFormsTests.user,
-                text='Тестовый комментарий',
+                text=text_comment,
                 post=PostsFormsTests.post
             ).exists()
         )
         self.assertEqual(Comment.objects.count(), comment_count + 1)
+        self.assertContains(response, text_comment)
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
