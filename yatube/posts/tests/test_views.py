@@ -261,8 +261,9 @@ class PostsViewsTests(TestCase):
         guest_client = self.guest_client
         user_to_subscribe = User.objects.get(username='auth_to_subscribe')
         follower_count = Follow.objects.count()
-        link_follow_add = reverse(PostsViewsTests.post_add_follow_endpoint,
-                                  kwargs={'username': user_to_subscribe.username})
+        link_follow_add = reverse(
+            PostsViewsTests.post_add_follow_endpoint,
+            kwargs={'username': user_to_subscribe.username})
 
         response = guest_client.get(link_follow_add)
 
@@ -284,28 +285,33 @@ class PostsViewsTests(TestCase):
                     kwargs={'username': user_to_subscribe.username}))
         follow_page_response = user_follower_client.get(
             reverse(PostsViewsTests.post_follow_index_endpoint))
-        posts_user_to_subscribe = Post.objects.filter(author__following__user=user_follower).first()
+        posts_user_to_subscribe = Post.objects.filter(
+            author__following__user=user_follower).first()
         context_posts = follow_page_response.context['page_obj'].object_list
 
         self.assertIn(posts_user_to_subscribe, context_posts)
 
     def test_posts_follower_do_not_see_posts_if_not_subscribed(self):
-        """Авторизованный пользователь не видит посты того, на кого не подписан"""
+        """Авторизованный пользователь не
+         видит посты того, на кого не подписан"""
         user_not_follower_client = self.authorized_client
-        user_not_to_subscribe = User.objects.get(username='auth_to_subscribe')
+        user_not_to_subscribe = User.objects.get(
+            username='auth_to_subscribe')
         Post.objects.create(
             author=user_not_to_subscribe, text='Пост для проверки подписки')
 
         follow_page_response = user_not_follower_client.get(
             reverse(PostsViewsTests.post_follow_index_endpoint))
-        posts_user_to_subscribe = Post.objects.filter(author=user_not_to_subscribe).first()
+        posts_user_to_subscribe = Post.objects.filter(
+            author=user_not_to_subscribe).first()
         context_posts = follow_page_response.context['page_obj'].object_list
 
         self.assertNotIn(posts_user_to_subscribe, context_posts)
 
     def test_posts_post_check_cache_index_page(self):
         """Проверяет работу кэша index страницы объекта page_obj."""
-        post = Post.objects.filter(text='Тестовый пост для оценки работы').first()
+        post = Post.objects.filter(
+            text='Тестовый пост для оценки работы').first()
         post_text = post.text
         post.delete()
 
